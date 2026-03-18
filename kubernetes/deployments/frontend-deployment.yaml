@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: yourdockerhubusername/logistics-frontend:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: REACT_APP_USERS_SERVICE_URL
+          value: "http://users-service:3001"
+        - name: REACT_APP_ORDERS_SERVICE_URL
+          value: "http://orders-service:3002"
+        - name: REACT_APP_SHIPMENTS_SERVICE_URL
+          value: "http://shipments-service:3003"
+        - name: REACT_APP_INVENTORY_SERVICE_URL
+          value: "http://inventory-service:3004"
+        - name: REACT_APP_NOTIFICATIONS_SERVICE_URL
+          value: "http://notifications-service:3005"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"

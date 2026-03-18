@@ -1,0 +1,193 @@
+version: '3.8'
+
+services:
+  users-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: users_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - users_db_data:/var/lib/postgresql/data
+      - ./databases/01-users-init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    networks:
+      - logistics
+
+  orders-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: orders_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - orders_db_data:/var/lib/postgresql/data
+      - ./databases/02-orders-init.sql:/docker-entrypoint-initdb.d/02-init.sql
+    networks:
+      - logistics
+
+  shipments-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: shipments_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - shipments_db_data:/var/lib/postgresql/data
+      - ./databases/03-shipments-init.sql:/docker-entrypoint-initdb.d/03-init.sql
+    networks:
+      - logistics
+
+  inventory-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: inventory_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - inventory_db_data:/var/lib/postgresql/data
+      - ./databases/04-inventory-init.sql:/docker-entrypoint-initdb.d/04-init.sql
+    networks:
+      - logistics
+
+  notifications-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: notifications_db
+    ports:
+      - "5436:5432"
+    volumes:
+      - notifications_db_data:/var/lib/postgresql/data
+      - ./databases/05-notifications-init.sql:/docker-entrypoint-initdb.d/05-init.sql
+    networks:
+      - logistics
+
+  users-service:
+    build:
+      context: ./services/users-service
+    ports:
+      - "3001:3001"
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: users-db
+      DB_PORT: 5432
+      DB_NAME: users_db
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      PORT: 3001
+    depends_on:
+      - users-db
+    networks:
+      - logistics
+
+  orders-service:
+    build:
+      context: ./services/orders-service
+    ports:
+      - "3002:3002"
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: orders-db
+      DB_PORT: 5432
+      DB_NAME: orders_db
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      PORT: 3002
+      NOTIFICATIONS_SERVICE_URL: http://notifications-service:3005
+    depends_on:
+      - orders-db
+    networks:
+      - logistics
+
+  shipments-service:
+    build:
+      context: ./services/shipments-service
+    ports:
+      - "3003:3003"
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: shipments-db
+      DB_PORT: 5432
+      DB_NAME: shipments_db
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      PORT: 3003
+    depends_on:
+      - shipments-db
+    networks:
+      - logistics
+
+  inventory-service:
+    build:
+      context: ./services/inventory-service
+    ports:
+      - "3004:3004"
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: inventory-db
+      DB_PORT: 5432
+      DB_NAME: inventory_db
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      PORT: 3004
+    depends_on:
+      - inventory-db
+    networks:
+      - logistics
+
+  notifications-service:
+    build:
+      context: ./services/notifications-service
+    ports:
+      - "3005:3005"
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: notifications-db
+      DB_PORT: 5432
+      DB_NAME: notifications_db
+      PORT: 3005
+    depends_on:
+      - notifications-db
+    networks:
+      - logistics
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_USERS_SERVICE_URL: http://localhost:3001
+      REACT_APP_ORDERS_SERVICE_URL: http://localhost:3002
+      REACT_APP_SHIPMENTS_SERVICE_URL: http://localhost:3003
+      REACT_APP_INVENTORY_SERVICE_URL: http://localhost:3004
+      REACT_APP_NOTIFICATIONS_SERVICE_URL: http://localhost:3005
+    depends_on:
+      - users-service
+      - orders-service
+      - shipments-service
+      - inventory-service
+      - notifications-service
+    networks:
+      - logistics
+
+volumes:
+  users_db_data:
+  orders_db_data:
+  shipments_db_data:
+  inventory_db_data:
+  notifications_db_data:
+
+networks:
+  logistics:
+    driver: bridge
